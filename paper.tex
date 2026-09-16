@@ -101,36 +101,36 @@ This section details the dataset compositions, experimental preprocessing pipeli
 The primary controlled laboratory dataset is drawn from the public PlantVillage corpus ($N = 54,305$ RGB images spanning 38 crop-disease taxonomy classes). For evaluation, an 80\%/20\% train-validation split was enforced ($N_{\text{train}} = 43,444$ images, $N_{\text{val}} = 10,861$ images), with a primary held-out evaluation set comprising 33 target crop-disease classes. Represented crop species include apple, blueberry, cherry, corn (maize), grape, orange, peach, bell pepper, potato, raspberry, soybean, squash, strawberry, and tomato. Pathological categories encompass fungal pathogens (e.g., \textit{Venturia inaequalis}, \textit{Alternaria solani}), bacterial infections (e.g., \textit{Xanthomonas} spp.), and viral diseases (e.g., Tomato Yellow Leaf Curl Virus, Tobamovirus), alongside healthy foliar controls for each plant species.
 
 \subsection{Secondary Dataset: Kashmiri Apple Orchard Field Dataset}
-To rigorously evaluate out-of-domain (OOD) generalization under real-world agricultural conditions, a disjoint field dataset was acquired: the Kashmiri Apple Field Dataset ($N = 419$ raw farm photographs). Collected across active Kashmiri apple orchards, the dataset contains four target field classes: Apple Scab, Black Rot, Cedar Apple Rust, and Healthy Leaves ($N_{\text{train}} = 335$ images, $N_{\text{val}} = 84$ images). Unlike studio-captured laboratory samples, these photographs incorporate unconstrained farm noise, including direct solar glare, variable shadows, background soil/weed clutter, and complex leaf orientations. This dataset was reserved exclusively for zero-shot testing and real-world field adaptation experiments.
+To rigorously evaluate out-of-domain (OOD) generalization under real-world agricultural conditions, a disjoint field dataset was acquired: the Kashmiri Apple Field Dataset ($N = 419$ raw farm photographs). Collected across active Kashmiri apple orchards, the dataset contains four target field classes: Apple Scab, Black Rot, Cedar Apple Rust, and Healthy Leaves ($N_{\text{train}} = 335$ images, $N_{\text{val}} = 84$ images). Unlike studio-captured laboratory samples, these photographs incorporate unconstrained farm noise, including direct solar glare, variable shadows, background soil/weed clutter, and complex leaf orientations (Fig.~\ref{fig:dataset_samples}). This dataset was reserved exclusively for zero-shot testing and real-world field adaptation experiments.
+
+% --- FIGURE 1: Dataset Samples Grid ---
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{paper_figures/dataset_samples.png}
+\caption{Sample photographs from the Kashmiri Apple Orchard real-world field dataset illustrating unconstrained farm background clutter, natural lighting, and shadows.}
+\label{fig:dataset_samples}
+\end{figure}
 
 \subsection{Preprocessing, Patch Super-Sampling, and Data Augmentation}
 To eliminate data leakage between training and validation splits, partitioning was executed using \texttt{torch.utils.data.random\_split} under a fixed seed (\texttt{torch.manual\_seed(42)}). Primary training images were augmented with spatial resizing to $224 \times 224$ pixels, random horizontal ($p = 0.5$) and vertical ($p = 0.3$) flips, random affine rotations ($\pm 25^\circ$), color jittering (brightness: 0.3, contrast: 0.3, saturation: 0.2), random erasing ($p = 0.25$), and standard ImageNet channel normalization.
 
-For real-world field adaptation, an automated 3-stage preprocessing pipeline was engineered:
+For real-world field adaptation, an automated 3-stage preprocessing pipeline was engineered (Fig.~\ref{fig:pipeline_flow}):
 \begin{itemize}
     \item \textbf{Foliar Leaf ROI Isolation:} Automated color-space thresholding in HSV and Lab color spaces generates a binary mask to eliminate background soil, weeds, and branches, isolating the primary leaf Region of Interest (ROI).
     \item \textbf{8$\times$ Multi-Scale Patch Super-Sampling:} Extracts 8 overlapping spatial bounding-box crops per isolated leaf image ($N = 2,680$ patches from 335 field training images), expanding local lesion feature density by 800\%.
     \item \textbf{5-Crop Test-Time Augmentation (TTA):} Evaluates 5 spatial transformations per validation image at inference time (original crop, horizontal flip, vertical flip, $+15^\circ$ rotation, and $-15^\circ$ rotation) and averages soft max probability logits to mitigate illumination variance and mobile camera noise.
 \end{itemize}
 
-% --- FIGURE 1: Real-World Field Adaptation Pipeline Photo ---
+% --- FIGURE 2: System Pipeline Flow Diagram ---
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/field_adaptation_pipeline.png}
-\caption{End-to-end 3-stage real-world field adaptation pipeline showing foliar leaf ROI isolation, $8\times$ multi-scale patch super-sampling ($N=2,680$), Attention-MobileNetV3 feature extraction, and 5-crop TTA inference.}
-\label{fig:field_adaptation_pipeline}
+\includegraphics[width=\textwidth]{paper_figures/pipeline_flow.png}
+\caption{Overview of the 3-stage real-world field adaptation pipeline: input farm photo, HSV/Lab foliar leaf ROI isolation, $8\times$ multi-scale patch super-sampling ($N=2,680$), and Attention-MobileNetV3 feature extraction with 5-crop TTA.}
+\label{fig:pipeline_flow}
 \end{figure*}
 
 \subsection{Proposed Architecture: Attention-MobileNetV3 (CBAM)}
 The core contribution of this work is \textbf{Attention-MobileNetV3}, a parameter-efficient architecture extending a MobileNetV3-Small inverted-residual backbone with a Convolutional Block Attention Module (CBAM) positioned prior to global pooling.
-
-% --- FIGURE 2: CBAM Architecture Diagram Photo ---
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/cbam_architecture_diagram.png}
-\caption{Architectural flow of Attention-MobileNetV3 incorporating Convolutional Block Attention Modules (CBAM Channel and Spatial Attention) prior to global pooling and the 2-stage linear classifier head.}
-\label{fig:cbam_architecture}
-\end{figure*}
 
 \subsubsection{Channel Attention Module (CAM)}
 The Channel Attention sub-module aggregates spatial context via parallel Global Average Pooling ($\text{AvgPool}$) and Global Max Pooling ($\text{MaxPool}$) operations across feature channels $\mathbf{F} \in \mathbb{R}^{C \times H \times W}$ ($C = 576$). Channel weights are derived using a shared Multi-Layer Perceptron (MLP) with a reduction ratio $r = 16$:
@@ -171,14 +171,6 @@ To provide transparent diagnostic evidence for agricultural end-users and agrono
 \label{eq:gradcam}
 \end{equation}
 where $A^k$ represents feature activation map $k$, $Z = H \times W$ is the spatial area, and $Y^c$ is the unnormalized logit score for class $c$. Overlaid heatmaps visually verify that network predictions spotlight necrotic foliar lesions while suppressing background illumination glare and soil noise.
-
-% --- FIGURE 3: Grad-CAM Visual Attribution Sample Photo ---
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\linewidth]{notebooks/attention_mobilenet_gradcam_sample.png}
-\caption{Grad-CAM visual attribution heatmap overlay demonstrating localized lesion spotlighting on necrotic foliar disease spots.}
-\label{fig:gradcam_sample}
-\end{figure}
 
 \subsection{Energy-Based and Entropy-Based OOD Detection}
 Non-foliar uploads (e.g., machinery, human hands, soil, non-target vegetation) are flagged and rejected prior to classification using two complementary safety metrics: Softmax Shannon Entropy $H(p)$ and Free Energy $E(\mathbf{x}; f)$:
@@ -244,7 +236,15 @@ Stage 4: $8\times$ Patches + 5-Crop TTA & \textbf{76.19\%} & \textbf{0.7668} & \
 \end{table*}
 
 \subsection{Comparative Field Benchmark Across All Backbones}
-Following field fine-tuning on $N = 2,680$ multi-scale patches ($335 \text{ images} \times 8 \text{ crops}$), all three architectures were evaluated under identical field validation protocols ($N_{\text{val}} = 84$). As reported in Table~\ref{tab:field_comp}, Attention-MobileNetV3 achieved the top field accuracy (\textbf{72.62\% single-pass / 76.19\% 5-crop TTA}) and highest weighted F1-score (\textbf{0.7573}), outperforming both baseline MobileNetV3 (70.24\%) and heavy ResNet-50 (67.86\%).
+Following field fine-tuning on $N = 2,680$ multi-scale patches ($335 \text{ images} \times 8 \text{ crops}$), all three architectures were evaluated under identical field validation protocols ($N_{\text{val}} = 84$). As reported in Table~\ref{tab:field_comp}, Attention-MobileNetV3 achieved the top field accuracy (\textbf{72.62\% single-pass / 76.19\% 5-crop TTA}) and highest weighted F1-score (\textbf{0.7573}), outperforming both baseline MobileNetV3 (70.24\%) and heavy ResNet-50 (67.86\%). The field confusion matrix is illustrated in Fig.~\ref{fig:confusion_matrix}.
+
+% --- FIGURE 3: Real Field Confusion Matrix Photo ---
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{paper_figures/confusion_matrix.png}
+\caption{Field validation confusion matrix for Attention-MobileNetV3 on the Kashmiri Apple dataset ($N_{\text{val}}=84$) achieving 76.19\% 5-crop TTA field accuracy.}
+\label{fig:confusion_matrix}
+\end{figure}
 
 % --- TABLE 3: Increased Row Height (\arraystretch{1.4}) + Span Both Columns ---
 \begin{table*}[t]
