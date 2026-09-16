@@ -1,0 +1,4 @@
+Model Architecture,Parameters,Zero-Shot Accuracy,Adapted Field Accuracy,Accuracy Gain,Adapted Precision,Adapted Recall,Adapted F1-Score
+MobileNetV3 (Baseline),"1,075,748",12.41%,67.86%,+55.45%,0.6974,0.6786,0.6787
+Attention-MobileNetV3 (Ours),"1,117,318",11.46%,69.05%,+57.59%,0.7085,0.6905,0.6926
+ResNet50 (Benchmark),"24,033,604",10.02%,66.67%,+56.65%,0.6857,0.6667,0.6632
