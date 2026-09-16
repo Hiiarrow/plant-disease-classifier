@@ -39,7 +39,7 @@ Plant Disease Detection, Attention-MobileNetV3, CBAM, Explainable AI (Grad-CAM),
 \end{IEEEkeywords}
 
 \section{Introduction}
-Plant diseases inflict over \$220 billion in annual agricultural losses worldwide. While automated diagnosis using deep learning offers a viable alternative to scarce expert pathology, existing systems face critical barriers to field deployment: edge hardware constraints, black-box predictions, and severe performance drops outside controlled environments.
+Plant diseases inflict over \$220 billion in annual agricultural losses worldwide~\cite{ref_fao}. While automated diagnosis using deep learning offers a viable alternative to scarce expert pathology, existing systems face critical barriers to field deployment: edge hardware constraints, black-box predictions, and severe performance drops outside controlled environments.
 
 Convolutional neural networks (CNNs) benchmarked on standard datasets like PlantVillage regularly exceed 99\% classification accuracy~\cite{ref1, ref2, ref3, ref4}. However, these lab metrics do not translate to actual farms. High-accuracy models like ResNet-50 remain too compute-heavy for low-cost mobile hardware~\cite{ref5, ref6}, while common classifiers operate as black boxes that provide no visual justification to guide agronomic interventions. Most critically, models trained on clean studio images fail on unconstrained field photos with varying sunlight, soil, and canopy clutter~\cite{ref7, ref8, ref9}, often producing confident false positives on non-leaf images.
 
@@ -171,7 +171,7 @@ Weighted ROC-AUC (OvR) & 1.0000 & 1.0000 & 1.0000 \\
 \end{table*}
 
 \begin{table*}[t!]
-\caption{Stage-by-stage real-world field optimization progression for Attention-MobileNetV3 on the Kashmiri Apple Orchard dataset.}
+\caption{Stage-by-stage real-world field optimization progression for Attention-MobileNetV3 on the Kashmiri Apple Orchard dataset ($N_{\text{val}} = 84$). Stage 3 evaluates single-pass inference (61/84 correct), while Stage 4 incorporates 5-crop TTA (64/84 correct), directly matching Table~\ref{tab:field_comp}.}
 \label{tab:stage_progression}
 \centering
 \resizebox{\textwidth}{!}{%
@@ -181,8 +181,8 @@ Weighted ROC-AUC (OvR) & 1.0000 & 1.0000 & 1.0000 \\
 \midrule
 Stage 1: Raw Zero-Shot (Lab Only) & 11.46\% & 0.1772 & 0.0925 & Studio vs. Open-Farm Domain Shift \\
 Stage 2: Layer-wise Transfer Tuning & 63.10\% & 0.6974 & 0.6787 & +51.64\% Transfer Learning Boost \\
-Stage 3: Foliar Mask + $8\times$ Patches & 75.00\% & 0.7582 & 0.7490 & Background Soil Masking \& 2.6k Patches \\
-Stage 4: $8\times$ Patches + 5-Crop TTA & \textbf{76.19\%} & \textbf{0.7668} & \textbf{0.7573} & \textbf{+64.73\% Total Net Accuracy Gain} \\
+Stage 3: Foliar Mask + $8\times$ Patches (Single-Pass) & 72.62\% & 0.7314 & 0.7245 & Background Soil Masking \& 2.6k Patches \\
+Stage 4: $8\times$ Patches + 5-Crop TTA (Ensemble) & \textbf{76.19\%} & \textbf{0.7668} & \textbf{0.7573} & \textbf{+64.73\% Total Net Accuracy Gain} \\
 \bottomrule
 \end{tabular}%
 }
@@ -205,7 +205,7 @@ Non-foliar uploads (e.g., machinery, human hands, soil, non-target vegetation) a
 H(p) = -\sum_{i=1}^{K} p_i \log p_i, \quad E(\mathbf{x}; f) = -T \cdot \log \sum_{i=1}^{K} \exp\left(\frac{f_i(\mathbf{x})}{T}\right)
 \label{eq:ood}
 \end{equation}
-where $p_i = \text{softmax}(f_i(\mathbf{x}))$, $f_i(\mathbf{x})$ denotes the raw logit output for class $i$, and $T$ is the temperature scaling parameter ($T = 1.0$). Inputs violating calibrated decision thresholds ($\tau_{\text{entropy}}$ or $\tau_{\text{energy}}$) trigger an automated Out-of-Distribution Warning, preventing false high-confidence predictions on invalid field samples.
+where $p_i = \text{softmax}(f_i(\mathbf{x}))$, $f_i(\mathbf{x})$ denotes the raw logit output for class $i$, and $T$ is the temperature scaling parameter ($T = 1.0$). Inputs violating calibrated decision thresholds ($\tau_{\text{entropy}}$ or $\tau_{\text{energy}}$) trigger an automated Out-of-Distribution Warning, preventing false high-confidence predictions on invalid field samples. We note as a current operational limitation that while this dual-filter safeguard reliably rejects non-foliar inputs in the graphical deployment pipeline, formal quantitative benchmarking against standardized non-foliar agricultural anomalies (measuring FPR95 and AUROC) remains ongoing work (Section~\ref{sec:future_work}).
 
 \section{Experimental Results}
 \label{sec:results}
@@ -217,12 +217,18 @@ Table~\ref{tab:plantvillage} summarizes validation performance on the primary he
 Direct zero-shot deployment of laboratory-trained models onto the unseen Kashmiri Apple Orchard dataset ($N = 419$) revealed catastrophic domain shift across all backbones. Standard MobileNetV3 dropped to 12.41\% accuracy, Attention-MobileNetV3 scored 11.46\%, and ResNet-50 degraded to 10.02\%. These empirical results confirm that high laboratory accuracy and deep residual backbones offer no inherent immunity against real-world agricultural domain shifts (soil clutter, solar glare, and unconstrained foliage framing).
 
 \subsection{Multi-Stage Real-World Field Adaptation}
-To recover field classification performance, the engineered 3-stage field adaptation pipeline was applied to Attention-MobileNetV3. Table~\ref{tab:stage_progression} tracks accuracy gains across each progressive engineering milestone, scaling real-world field accuracy from \textbf{11.46\% up to 76.19\%} (+64.73\% overall net gain).
+To recover field classification performance, the engineered 3-stage field adaptation pipeline was applied to Attention-MobileNetV3. Table~\ref{tab:stage_progression} tracks accuracy gains across each progressive engineering milestone, scaling real-world field accuracy from an initial zero-shot collapse of 11.46\% up to 76.19\% (+64.73\% net gain). Specifically, Stage 3 applies foliar ROI isolation alongside $8\times$ multi-scale patch super-sampling, yielding 72.62\% field accuracy under standard single-pass inference (61/84 correct classifications). Stage 4 augments this with 5-crop TTA inference to average out orientation and illumination jitter, elevating field accuracy to 76.19\% (64/84 correct). This explicitly reconciles the progression in Table~\ref{tab:stage_progression} with the comparative model metrics in Table~\ref{tab:field_comp}.
 
 \subsection{Comparative Field Benchmark Across All Backbones}
 Following field fine-tuning on $N = 2,680$ multi-scale patches ($335 \text{ images} \times 8 \text{ crops}$), all three architectures were evaluated under identical field validation protocols ($N_{\text{val}} = 84$). As reported in Table~\ref{tab:field_comp}, Attention-MobileNetV3 achieved the top field accuracy (\textbf{72.62\% single-pass / 76.19\% 5-crop TTA}) and highest weighted F1-score (\textbf{0.7573}), outperforming both baseline MobileNetV3 (70.24\%) and heavy ResNet-50 (67.86\%). 
 
 The complete field confusion matrix is illustrated in Fig.~\ref{fig:confusion_matrix}, showing 64 correct predictions out of 84 field validation samples (Apple Scab: 24/33, Apple Rot: 12/20, Leaf Blotch: 23/26, Healthy Leaves: 5/5), yielding exact 76.19\% accuracy.
+
+\subsection{Train-to-Field Generalization Gap}
+As documented in Table~\ref{tab:field_comp}, all three fine-tuned models attain high accuracy on the augmented patch training set (95.63\%--97.46\%). However, single-pass evaluation on full unconstrained field validation images drops to 70.24\% for baseline MobileNetV3, 69.05\% for ResNet-50, and 72.62\% for Attention-MobileNetV3, revealing an acute train-to-field generalization gap of $\approx 23.35$ percentage points for the proposed architecture. This gap indicates that localized patch sampling does not completely eradicate field-level distribution shifts: whole-canopy field photography presents intricate multi-leaf occlusions, irregular illumination gradients, and pathogen co-occurrence that are not fully captured through synthetic training augmentations alone. While 5-crop TTA recovers a portion of this margin (+3.57\%), closing this remaining gap represents an open challenge for on-farm deployment.
+
+\subsection{Statistical Significance and Small-Cohort Caveat}
+The field validation split comprises $N_{\text{val}} = 84$ photographs, where each individual test image represents $\approx 1.19\%$ of the validation metric. Consequently, the margin between Attention-MobileNetV3 (64/84 = 76.19\%) and baseline MobileNetV3 (59/84 = 70.24\%) corresponds to a difference of 5 correctly diagnosed leaves, while the margin over ResNet-50 (57/84 = 67.86\%) reflects 7 leaves. Although the directional advantage of CBAM attention in focusing on foliar lesions rather than background canopy noise is consistent across repeated trials, we emphasize that this modest sample size warrants statistical caution. Larger multi-orchard cohorts are necessary to establish asymptotic significance intervals and ensure generalization across diverse agro-climatic zones.
 
 % --- FIGURE 3: Exact 400 DPI Confusion Matrix ---
 \begin{figure}[htbp]
@@ -234,7 +240,7 @@ The complete field confusion matrix is illustrated in Fig.~\ref{fig:confusion_ma
 
 % --- TABLE 3: Increased Row Height (\arraystretch{1.4}) + Span Both Columns ---
 \begin{table*}[t!]
-\caption{Comparative 3-model real-world field benchmark on the Kashmiri Apple Orchard dataset ($N = 2,680$ patches).}
+\caption{Comparative 3-model real-world field benchmark on the Kashmiri Apple Orchard dataset ($N = 2,680$ patches, $N_{\text{val}} = 84$). Single-pass field accuracy for Attention-MobileNetV3 (72.62\%) reflects the Stage 3 configuration, while 5-crop TTA (76.19\%) reflects Stage 4.}
 \label{tab:field_comp}
 \centering
 \renewcommand{\arraystretch}{1.4}
@@ -263,14 +269,17 @@ Future research directions will focus on four primary technical vectors:
 
 \section{Conclusion}
 \label{sec:conclusion}
-This study demonstrates that \mbox{Attention-MobileNetV3} successfully resolves the longstanding trade-off between computational efficiency, visual transparency, and out-of-domain field generalization in automated plant disease diagnosis. Incorporating Convolutional Block Attention Modules (CBAM) into a MobileNetV3-Small backbone yields a highly efficient model containing just 1.12~Million parameters ($a \mathbf{95.3\% \text{ reduction}}$ vs. ResNet-50) with sub-10ms GPU latency while achieving 99.81\% classification accuracy on the 33-class PlantVillage multi-crop benchmark dataset. 
+This study demonstrates that \mbox{Attention-MobileNetV3} substantially narrows the longstanding trade-off between computational efficiency, visual transparency, and out-of-domain field generalization in automated plant disease diagnosis. Incorporating Convolutional Block Attention Modules (CBAM) into a MobileNetV3-Small backbone yields a highly compact architecture containing just 1.12~Million parameters ($a \mathbf{95.3\% \text{ reduction}}$ vs. ResNet-50) with sub-10ms GPU latency while achieving 99.81\% classification accuracy on the 33-class PlantVillage multi-crop benchmark dataset. 
 
-Furthermore, to overcome catastrophic out-of-domain performance degradation when deploying laboratory models to real-world farms, an automated 3-stage field adaptation architecture was engineered: combining \textit{HSV/Lab Foliar ROI Isolation}, \textit{$8\times$ Multi-Scale Patch Super-Sampling} ($N = 2,680$ patches), and \textit{5-Crop Test-Time Augmentation (TTA)}. On the unseen Kashmiri Apple Orchard dataset, this pipeline recovers classification accuracy from an initial zero-shot collapse of 11.46\% up to 76.19\% field accuracy, outperforming standard MobileNetV3 (70.24\%) and heavy ResNet-50 (67.86\%) backbones. Integrated Grad-CAM heatmaps and Energy-based OOD rejection guardrails provide visual transparency and deployment safety, establishing a robust foundation for edge agricultural artificial intelligence.
+Furthermore, to overcome catastrophic out-of-domain performance degradation when deploying laboratory models to real-world farms, an automated 3-stage field adaptation architecture was engineered: combining \textit{HSV/Lab Foliar ROI Isolation}, \textit{$8\times$ Multi-Scale Patch Super-Sampling} ($N = 2,680$ patches), and \textit{5-Crop Test-Time Augmentation (TTA)}. On the unseen Kashmiri Apple Orchard dataset, this pipeline recovers classification accuracy from an initial zero-shot collapse of 11.46\% up to 76.19\% field accuracy, outperforming standard MobileNetV3 (70.24\%) and heavy ResNet-50 (67.86\%) backbones. While a $\approx 23$-point train-to-field gap and a modest field validation cohort ($N_{\text{val}}=84$) demonstrate that full open-world generalization remains an ongoing challenge, the integration of Grad-CAM interpretability and dual energy/entropy OOD filtering establishes a principled, lightweight foundation for trustworthy edge agricultural artificial intelligence.
 
 % =========================================================================
 % REFERENCES
 % =========================================================================
 \begin{thebibliography}{00}
+
+\bibitem{ref_fao}
+Food and Agriculture Organization of the United Nations (FAO), ``Plant pests and diseases,'' FAO News, Rome, Italy, 2021. [Online]. Available: \url{https://www.fao.org/emergencies/emergency-types/plant-pests-and-diseases/en/}.
 
 \bibitem{ref1} 
 S.~P. Mohanty, D.~P. Hughes, and M.~Salath{\'e}, ``Using deep learning for image-based plant disease detection,'' \textit{Frontiers in Plant Science}, vol.~7, art.~1419, 2016, doi: 10.3389/fpls.2016.01419.
