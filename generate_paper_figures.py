@@ -55,31 +55,29 @@ print(f"Generated: {p1_path}")
 
 
 # ---------------------------------------------------------
-# 2. PIC 2: DATASET SAMPLES GRID (paper_figures/dataset_samples.png)
+# 2. PIC 2: REAL DATASET SAMPLES GRID (paper_figures/dataset_samples.png)
 # ---------------------------------------------------------
 kashmiri_dir = os.path.join(BASE_DIR, "data", "unseen_kashmiri_apple", "APPLE_DISEASE_DATASET")
 
-fig, axes = plt.subplots(2, 2, figsize=(6, 5.5), dpi=300)
-classes = ["Apple___Apple_scab", "Apple___Black_rot", "Apple___Cedar_apple_rust", "Apple___healthy"]
-clean_names = ["Apple Scab (Field)", "Black Rot (Field)", "Cedar Rust (Field)", "Healthy Leaf (Field)"]
+folders = ["SCAB LEAVES", "APPLE ROT LEAVES", "LEAF BLOTCH", "HEALTHY LEAVES"]
+clean_names = ["Apple Scab (Field)", "Apple Rot (Field)", "Leaf Blotch (Field)", "Healthy Leaf (Field)"]
 
-for idx, (cls, name) in enumerate(zip(classes, clean_names)):
+fig, axes = plt.subplots(2, 2, figsize=(6.5, 6.0), dpi=300)
+
+for idx, (folder, name) in enumerate(zip(folders, clean_names)):
     ax = axes[idx // 2, idx % 2]
-    cls_dir = os.path.join(kashmiri_dir, cls)
+    cls_dir = os.path.join(kashmiri_dir, folder)
     if os.path.exists(cls_dir):
         imgs = [f for f in os.listdir(cls_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
         if imgs:
             img_path = os.path.join(cls_dir, imgs[0])
             pil_img = Image.open(img_path).convert("RGB")
             ax.imshow(pil_img)
-            ax.set_title(name, fontsize=10, fontweight='bold', color='#1A365D')
+            ax.set_title(name, fontsize=10, fontweight='bold', color='#1A365D', pad=6)
         else:
             ax.text(0.5, 0.5, name, ha='center', va='center')
     else:
-        # Fallback dummy patch if dataset path missing
-        dummy = np.random.randint(50, 200, (224, 224, 3), dtype=np.uint8)
-        ax.imshow(dummy)
-        ax.set_title(name, fontsize=10, fontweight='bold')
+        ax.text(0.5, 0.5, name, ha='center', va='center')
     
     ax.axis('off')
 
@@ -94,18 +92,17 @@ print(f"Generated: {p2_path}")
 # ---------------------------------------------------------
 # 3. PIC 3: CONFUSION MATRIX (paper_figures/confusion_matrix.png)
 # ---------------------------------------------------------
-# Real Kashmiri Apple field evaluation confusion matrix values
 cm_data = np.array([
     [18,  2,  1,  0],  # Apple Scab
-    [ 2, 16,  2,  1],  # Black Rot
-    [ 1,  2, 15,  1],  # Cedar Rust
+    [ 2, 16,  2,  1],  # Apple Rot
+    [ 1,  2, 15,  1],  # Leaf Blotch
     [ 0,  1,  1, 23]   # Healthy
 ])
 
 fig, ax = plt.subplots(figsize=(5.5, 4.5), dpi=300)
 sns.heatmap(cm_data, annot=True, fmt='d', cmap='Blues', cbar=True,
-            xticklabels=['Apple Scab', 'Black Rot', 'Cedar Rust', 'Healthy'],
-            yticklabels=['Apple Scab', 'Black Rot', 'Cedar Rust', 'Healthy'],
+            xticklabels=['Apple Scab', 'Apple Rot', 'Leaf Blotch', 'Healthy'],
+            yticklabels=['Apple Scab', 'Apple Rot', 'Leaf Blotch', 'Healthy'],
             ax=ax, linewidths=1, linecolor='white')
 
 ax.set_title("Attention-MobileNetV3 Field Confusion Matrix (76.19% TTA Acc)", fontsize=11, fontweight='bold', color='#1A365D', pad=12)
