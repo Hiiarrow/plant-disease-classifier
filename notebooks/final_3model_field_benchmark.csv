@@ -1,0 +1,4 @@
+Model Architecture,Parameters,Patch Train Accuracy,Single-Pass Field Acc,5-Crop TTA Field Acc,Field Precision,Field F1-Score
+MobileNetV3 (Baseline),"1,075,748",95.63%,70.24%,70.24%,0.7080,0.7002
+Attention-MobileNetV3 (Ours),"1,117,318",95.97%,72.62%,67.86%,0.6798,0.6771
+ResNet50 (Benchmark),"24,033,604",97.46%,69.05%,67.86%,0.6808,0.6732

@@ -1,0 +1,4 @@
+Model Architecture,Parameters,Latency,Isolated Field Accuracy,Weighted Precision,Weighted Recall,Weighted F1-Score
+MobileNetV3 (Baseline),"1,083,201",8.54 ms,7.88%,0.2688,0.0788,0.0796
+Attention-MobileNetV3 (Ours),"1,124,771",10.94 ms,14.80%,0.2760,0.1480,0.1209
+ResNet50 (Benchmark),"24,041,057",9.32 ms,14.32%,0.3351,0.1432,0.1125

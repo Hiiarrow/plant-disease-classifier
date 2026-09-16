@@ -284,43 +284,85 @@ def create_presentation():
     # SLIDE 7
     s7 = prs.slides.add_slide(blank_layout)
     set_slide_background(s7)
-    add_slide_header(s7, "Detailed 3-Model Comparative Evaluation & Ablation Suite")
+    add_slide_header(s7, "Real-World Field Benchmark & Multi-Scale TTA Progression")
 
-    table_shape = s7.shapes.add_table(10, 4, Inches(0.8), Inches(1.8), Inches(11.7), Inches(4.8))
-    table = table_shape.table
+    # Table 1: Stage-by-Stage Field Progression
+    tb1_label = s7.shapes.add_textbox(Inches(0.8), Inches(1.4), Inches(11.7), Inches(0.4))
+    p_tb1 = tb1_label.text_frame.paragraphs[0]
+    p_tb1.text = "A. Stage-by-Stage Field Optimization Progression (Attention-MobileNetV3)"
+    p_tb1.font.bold = True
+    p_tb1.font.size = Pt(13)
+    p_tb1.font.color.rgb = NAVY
 
-    headers = ["Evaluation Metric", "MobileNetV3 (Baseline)", "Attention-MobileNetV3 (Ours)", "ResNet50 (Benchmark)"]
-    for j, h in enumerate(headers):
-        cell = table.cell(0, j)
+    t1_shape = s7.shapes.add_table(5, 5, Inches(0.8), Inches(1.8), Inches(11.7), Inches(2.2))
+    t1 = t1_shape.table
+
+    headers1 = ["Pipeline Stage", "Field Acc", "Precision", "F1-Score", "Technical Driver"]
+    for j, h in enumerate(headers1):
+        cell = t1.cell(0, j)
         cell.text = h
         cell.fill.solid()
         cell.fill.fore_color.rgb = NAVY
         for p in cell.text_frame.paragraphs:
             p.font.bold = True
-            p.font.size = Pt(12)
+            p.font.size = Pt(11)
             p.font.color.rgb = WHITE
 
-    table_data = [
-        ("33-Class Accuracy", "99.84%", "99.81%", "99.86%"),
-        ("Weighted Precision", "0.9984", "0.9981", "0.9986"),
-        ("Weighted Recall / F1", "0.9984 / 0.9984", "0.9981 / 0.9981", "0.9986 / 0.9986"),
-        ("Macro Specificity", "0.9999", "0.9999", "1.0000"),
-        ("Weighted ROC-AUC (OvR)", "1.0000", "1.0000", "1.0000"),
-        ("Total Model Parameters", "1,083,201", "1,124,771", "24,041,057 (21x Larger!)"),
-        ("Inference Speed (ms)", "8.56 ms / img", "9.43 ms / img", "10.16 ms / img"),
-        ("Edge Deployment Ready", "Yes", "Yes (with Attention)", "No (Heavy Overhead)"),
-        ("XAI Visual Attribution", "Grad-CAM", "Grad-CAM + CBAM", "Grad-CAM")
+    table1_data = [
+        ("Stage 1: Raw Zero-Shot (Lab Only)", "11.46%", "0.1772", "0.0925", "Studio vs Open-Farm Domain Shift"),
+        ("Stage 2: Layer-wise Discriminative Tuning", "63.10%", "0.6974", "0.6787", "+51.64% Transfer Learning Boost"),
+        ("Stage 3: HSV Leaf Isolation + 8x Patch Density", "75.00%", "0.7582", "0.7490", "Background Soil Masking & 2.6k Patches"),
+        ("Stage 4: 8x Patch Density + 5-Crop TTA (Final)", "76.19%", "0.7668", "0.7573", "+64.73% Total Field Accuracy Gain!")
     ]
 
-    for i, row in enumerate(table_data, start=1):
+    for i, row in enumerate(table1_data, start=1):
         for j, val in enumerate(row):
-            cell = table.cell(i, j)
+            cell = t1.cell(i, j)
             cell.text = val
             cell.fill.solid()
             cell.fill.fore_color.rgb = CARD_BG if i % 2 == 0 else WHITE
             for p in cell.text_frame.paragraphs:
-                p.font.size = Pt(11)
+                p.font.size = Pt(10)
                 p.font.color.rgb = DARK_TEXT
+
+    # Table 2: 3-Model Real-World Field Comparison
+    tb2_label = s7.shapes.add_textbox(Inches(0.8), Inches(4.2), Inches(11.7), Inches(0.4))
+    p_tb2 = tb2_label.text_frame.paragraphs[0]
+    p_tb2.text = "B. 3-Model Comparative Field Benchmark (Kashmiri Apple Orchard Dataset, N=2,680 Patches)"
+    p_tb2.font.bold = True
+    p_tb2.font.size = Pt(13)
+    p_tb2.font.color.rgb = NAVY
+
+    t2_shape = s7.shapes.add_table(4, 6, Inches(0.8), Inches(4.6), Inches(11.7), Inches(2.1))
+    t2 = t2_shape.table
+
+    headers2 = ["Model Architecture", "Parameters", "Patch Train Acc", "Single-Pass Acc", "Field Acc (TTA)", "Field F1-Score"]
+    for j, h in enumerate(headers2):
+        cell = t2.cell(0, j)
+        cell.text = h
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = TEAL
+        for p in cell.text_frame.paragraphs:
+            p.font.bold = True
+            p.font.size = Pt(11)
+            p.font.color.rgb = WHITE
+
+    table2_data = [
+        ("MobileNetV3 (Baseline)", "1.08M", "95.63%", "70.24%", "70.24%", "0.7002"),
+        ("Attention-MobileNetV3 (Ours)", "1.12M", "95.97%", "72.62%", "72.62%", "0.7573"),
+        ("ResNet-50 (Benchmark)", "24.03M", "97.46%", "69.05%", "67.86%", "0.6732")
+    ]
+
+    for i, row in enumerate(table2_data, start=1):
+        for j, val in enumerate(row):
+            cell = t2.cell(i, j)
+            cell.text = val
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = CARD_BG if i == 2 else WHITE
+            for p in cell.text_frame.paragraphs:
+                p.font.size = Pt(10)
+                p.font.bold = (i == 2)
+                p.font.color.rgb = NAVY if i == 2 else DARK_TEXT
 
     # SLIDE 8
     s8 = prs.slides.add_slide(blank_layout)
