@@ -12,8 +12,6 @@
 \usepackage{hyperref}
 \usepackage{stfloats}
 \usepackage{makecell}
-\usepackage{tikz}
-\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -115,40 +113,24 @@ For real-world field adaptation, an automated 3-stage preprocessing pipeline was
     \item \textbf{5-Crop Test-Time Augmentation (TTA):} Evaluates 5 spatial transformations per validation image at inference time (original crop, horizontal flip, vertical flip, $+15^\circ$ rotation, and $-15^\circ$ rotation) and averages soft max probability logits to mitigate illumination variance and mobile camera noise.
 \end{itemize}
 
-% --- SYSTEM WORKFLOW TIKZ FLOWCHART ---
+% --- FIGURE 1: Real-World Field Adaptation Pipeline Photo ---
 \begin{figure*}[t]
 \centering
-\resizebox{\textwidth}{!}{%
-\begin{tikzpicture}[
-    node distance=0.8cm and 0.6cm,
-    block/.style={rectangle, draw=blue!80!black, fill=blue!5, thick, inner sep=6pt, rounded corners=3pt, align=center, font=\small},
-    proc/.style={rectangle, draw=teal!80!black, fill=teal!10, thick, inner sep=6pt, rounded corners=3pt, align=center, font=\small},
-    attn/.style={rectangle, draw=orange!80!black, fill=orange!10, thick, inner sep=6pt, rounded corners=3pt, align=center, font=\small},
-    out/.style={rectangle, draw=purple!80!black, fill=purple!10, thick, inner sep=6pt, rounded corners=3pt, align=center, font=\small},
-    line/.style={draw, -{Stealth[length=2.5mm]}, thick, color=gray!80!black}
-]
-
-% Nodes
-\node [block] (input) {\textbf{Unconstrained Field Photo}\\Raw $224 \times 224 \times 3$ RGB};
-\node [proc, right=of input] (isolation) {\textbf{Foliar ROI Isolation}\\HSV/Lab Masking\\(Background Soil Removal)};
-\node [proc, right=of isolation] (sampling) {\textbf{$8\times$ Multi-Scale Patches}\\$N = 2,680$ Patches\\(+800\% Lesion Density)};
-\node [attn, right=of sampling] (cbam) {\textbf{Attention-MobileNetV3}\\CBAM (Channel + Spatial)\\$1.12\text{M Parameters}$};
-\node [out, right=of cbam] (deploy) {\textbf{5-Crop TTA Logits}\\Grad-CAM Overlay +\\Energy OOD Rejection\\(\textbf{76.19\% Field Acc})};
-
-% Arrows
-\path [line] (input) -- (isolation);
-\path [line] (isolation) -- (sampling);
-\path [line] (sampling) -- (cbam);
-\path [line] (cbam) -- (deploy);
-
-\end{tikzpicture}%
-}
-\caption{End-to-end system workflow: from raw orchard photo input through foliar leaf ROI isolation, $8\times$ multi-scale patch super-sampling, Attention-MobileNetV3 feature extraction, and 5-crop TTA inference.}
-\label{fig:system_flowchart}
+\includegraphics[width=\textwidth]{figures/field_adaptation_pipeline.png}
+\caption{End-to-end 3-stage real-world field adaptation pipeline showing foliar leaf ROI isolation, $8\times$ multi-scale patch super-sampling ($N=2,680$), Attention-MobileNetV3 feature extraction, and 5-crop TTA inference.}
+\label{fig:field_adaptation_pipeline}
 \end{figure*}
 
 \subsection{Proposed Architecture: Attention-MobileNetV3 (CBAM)}
 The core contribution of this work is \textbf{Attention-MobileNetV3}, a parameter-efficient architecture extending a MobileNetV3-Small inverted-residual backbone with a Convolutional Block Attention Module (CBAM) positioned prior to global pooling.
+
+% --- FIGURE 2: CBAM Architecture Diagram Photo ---
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/cbam_architecture_diagram.png}
+\caption{Architectural flow of Attention-MobileNetV3 incorporating Convolutional Block Attention Modules (CBAM Channel and Spatial Attention) prior to global pooling and the 2-stage linear classifier head.}
+\label{fig:cbam_architecture}
+\end{figure*}
 
 \subsubsection{Channel Attention Module (CAM)}
 The Channel Attention sub-module aggregates spatial context via parallel Global Average Pooling ($\text{AvgPool}$) and Global Max Pooling ($\text{MaxPool}$) operations across feature channels $\mathbf{F} \in \mathbb{R}^{C \times H \times W}$ ($C = 576$). Channel weights are derived using a shared Multi-Layer Perceptron (MLP) with a reduction ratio $r = 16$:
@@ -189,6 +171,14 @@ To provide transparent diagnostic evidence for agricultural end-users and agrono
 \label{eq:gradcam}
 \end{equation}
 where $A^k$ represents feature activation map $k$, $Z = H \times W$ is the spatial area, and $Y^c$ is the unnormalized logit score for class $c$. Overlaid heatmaps visually verify that network predictions spotlight necrotic foliar lesions while suppressing background illumination glare and soil noise.
+
+% --- FIGURE 3: Grad-CAM Visual Attribution Sample Photo ---
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{notebooks/attention_mobilenet_gradcam_sample.png}
+\caption{Grad-CAM visual attribution heatmap overlay demonstrating localized lesion spotlighting on necrotic foliar disease spots.}
+\label{fig:gradcam_sample}
+\end{figure}
 
 \subsection{Energy-Based and Entropy-Based OOD Detection}
 Non-foliar uploads (e.g., machinery, human hands, soil, non-target vegetation) are flagged and rejected prior to classification using two complementary safety metrics: Softmax Shannon Entropy $H(p)$ and Free Energy $E(\mathbf{x}; f)$:
